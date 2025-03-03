@@ -105,7 +105,7 @@ class UserControllerTest {
     }
 
     @Test
-    public void testGetAllUsers() throws Exception {
+    void testGetAllUsers() throws Exception {
         // Mock Data
         List<User> mockUsers = Arrays.asList(
                 new User(1L, "John Doe", "john@example.com"),
@@ -127,7 +127,7 @@ class UserControllerTest {
 
     @Test
     void testSettersAndGetters() {
-        User user = new User();
+        user = new User();
 
         user.setId(1L);
         user.setName("John Doe");
