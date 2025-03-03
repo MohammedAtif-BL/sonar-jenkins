@@ -27,8 +27,6 @@
 		<url/>
 	</scm>
 	<properties>
-		<sonar.host.url>http://localhost:9000</sonar.host.url>
-		<sonar.login>squ_3ca68510fe5e0f06b1b77fceb523a62e560fb04c</sonar.login>
 		<java.version>17</java.version>
 	</properties>
 	<dependencies>

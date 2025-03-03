@@ -20,7 +20,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.util.Optional;
 
 @ExtendWith(MockitoExtension.class)  // Use Mockito extension
-public class UserControllerTest {
+class UserControllerTest {
 
     private MockMvc mockMvc;
 
