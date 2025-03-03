@@ -23,6 +23,10 @@ public class User implements Serializable {
         this.email = email;
     }
 
+    public User() {
+
+    }
+
     public Long getId() {
         return id;
     }

@@ -16,8 +16,14 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.hamcrest.Matchers.*;
 
 @ExtendWith(MockitoExtension.class)  // Use Mockito extension
 class UserControllerTest {
@@ -40,7 +46,7 @@ class UserControllerTest {
 
     @Test
     void testCreateUser() throws Exception {
-        Mockito.when(userService.saveUser(Mockito.any(User.class)))
+        when(userService.saveUser(Mockito.any(User.class)))
                 .thenReturn(user);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/users")
@@ -55,7 +61,7 @@ class UserControllerTest {
 
     @Test
     void testGetUserById() throws Exception {
-        Mockito.when(userService.getUserById(1L))
+        when(userService.getUserById(1L))
                 .thenReturn(Optional.of(user));
 
         mockMvc.perform(MockMvcRequestBuilders.get("/users/1"))
@@ -78,7 +84,7 @@ class UserControllerTest {
     @Test
     void testGetUserFromCache() throws Exception {
         // Use `thenAnswer` to simulate caching (return the same response without re-invoking the method)
-        Mockito.when(userService.getUserById(1L))
+        when(userService.getUserById(1L))
                 .thenAnswer(invocation -> Optional.of(user));
 
         // First call - should hit the database
@@ -96,6 +102,40 @@ class UserControllerTest {
 
         // Now verify it was only invoked ONCE (before the reset)
         Mockito.verify(userService, Mockito.times(1)).getUserById(1L);
+    }
+
+    @Test
+    public void testGetAllUsers() throws Exception {
+        // Mock Data
+        List<User> mockUsers = Arrays.asList(
+                new User(1L, "John Doe", "john@example.com"),
+                new User(2L, "Jane Doe", "jane@example.com")
+        );
+
+        // Mock Service Call
+        when(userService.getAllUsers()).thenReturn(mockUsers);
+
+        // Perform GET Request
+        mockMvc.perform(MockMvcRequestBuilders.get("/users")) // Adjust if your endpoint is different
+                .andExpect(MockMvcResultMatchers.status().isOk()) // Check HTTP 200
+                .andExpect(jsonPath("$.size()", is(2))) // Check list size
+                .andExpect(jsonPath("$[0].id", is(1))) // Validate first user ID
+                .andExpect(jsonPath("$[0].name", is("John Doe"))) // Validate first user name
+                .andExpect(jsonPath("$[1].id", is(2))) // Validate second user ID
+                .andExpect(jsonPath("$[1].name", is("Jane Doe"))); // Validate second user name
+    }
+
+    @Test
+    void testSettersAndGetters() {
+        User user = new User();
+
+        user.setId(1L);
+        user.setName("John Doe");
+        user.setEmail("john.doe@example.com");
+
+        assertEquals(1L, user.getId());
+        assertEquals("John Doe", user.getName());
+        assertEquals("john.doe@example.com", user.getEmail());
     }
 
 }
