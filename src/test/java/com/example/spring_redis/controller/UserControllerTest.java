@@ -106,6 +106,29 @@ class UserControllerTest {
     }
 
     @Test
+    void testCreateUser_MissingName() throws Exception {
+        User user = new User(); // Creating a user with null name
+        user.setEmail("test@example.com");
+
+        mockMvc.perform(post("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(user)))
+                .andExpect(status().isBadRequest()); // Expecting 400 Bad Request
+    }
+
+    @Test
+    void testCreateUser_MissingEmail() throws Exception {
+        User user = new User();
+        user.setName("John Doe"); // Name is present, but email is null
+
+        mockMvc.perform(post("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(user)))
+                .andExpect(status().isBadRequest()); // Expecting 400 Bad Request
+    }
+
+
+    @Test
     void testDeleteUser_Success() throws Exception {
         doNothing().when(userService).deleteUser(1L);
 
