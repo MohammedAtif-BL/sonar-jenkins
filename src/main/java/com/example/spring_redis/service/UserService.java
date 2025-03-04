@@ -1,5 +1,6 @@
 package com.example.spring_redis.service;
 
+import com.example.spring_redis.exception.UserNotFoundException;
 import org.springframework.stereotype.Service;
 import com.example.spring_redis.entity.User;
 import com.example.spring_redis.repository.UserRepository;
@@ -39,7 +40,7 @@ public class UserService {
     @CacheEvict(value = "users", key = "#id")
     public void deleteUser(Long id) {
         if (!userRepository.existsById(id)) {
-            throw new RuntimeException("User not found"); // Ensures exception handling in controller
+            throw new UserNotFoundException("User not found"); // Ensures exception handling in controller
         }
         userRepository.deleteById(id);
     }

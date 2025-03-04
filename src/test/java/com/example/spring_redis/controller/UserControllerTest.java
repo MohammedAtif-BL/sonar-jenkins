@@ -4,6 +4,7 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import com.example.spring_redis.entity.User;
+import com.example.spring_redis.exception.UserNotFoundException;
 import com.example.spring_redis.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -113,7 +114,7 @@ class UserControllerTest {
 
     @Test
     void testDeleteUser_NotFound() throws Exception {
-        doThrow(new RuntimeException("User not found")).when(userService).deleteUser(1L);
+        doThrow(new UserNotFoundException("User not found")).when(userService).deleteUser(1L);
 
         mockMvc.perform(delete("/users/1"))
                 .andExpect(status().isNotFound());
