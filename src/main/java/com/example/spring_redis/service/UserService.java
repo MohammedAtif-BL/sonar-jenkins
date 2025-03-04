@@ -38,6 +38,9 @@ public class UserService {
     // Delete user and remove from cache
     @CacheEvict(value = "users", key = "#id")
     public void deleteUser(Long id) {
+        if (!userRepository.existsById(id)) {
+            throw new RuntimeException("User not found"); // Ensures exception handling in controller
+        }
         userRepository.deleteById(id);
     }
 }

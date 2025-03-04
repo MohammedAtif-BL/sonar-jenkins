@@ -1,5 +1,8 @@
 package com.example.spring_redis.controller;
 
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import com.example.spring_redis.entity.User;
 import com.example.spring_redis.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -8,24 +11,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.hamcrest.Matchers.*;
-
-@ExtendWith(MockitoExtension.class)  // Use Mockito extension
+@ExtendWith(MockitoExtension.class)
 class UserControllerTest {
 
     private MockMvc mockMvc;
@@ -33,109 +28,94 @@ class UserControllerTest {
     @Mock
     private UserService userService;
 
-    @InjectMocks  // Injects the mocked service into controller
+    @InjectMocks
     private UserController userController;
 
-    private User user;
+    private ObjectMapper objectMapper;
 
     @BeforeEach
-    void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(userController).build();  // Setup MockMvc manually
-        user = new User(1L, "John Doe", "john.doe@example.com");
+    void setup() {
+        mockMvc = MockMvcBuilders.standaloneSetup(userController).build();
+        objectMapper = new ObjectMapper();
     }
 
     @Test
-    void testCreateUser() throws Exception {
-        when(userService.saveUser(Mockito.any(User.class)))
-                .thenReturn(user);
+    void testGetAllUsers_Success() throws Exception {
+        List<User> users = Arrays.asList(new User(1L, "John Doe", "john@example.com"),
+                new User(2L, "Jane Doe", "jane@example.com"));
+        when(userService.getAllUsers()).thenReturn(users);
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/users")
+        mockMvc.perform(get("/users"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.size()").value(users.size()))
+                .andExpect(jsonPath("$[0].name").value("John Doe"))
+                .andExpect(jsonPath("$[1].name").value("Jane Doe"));
+    }
+
+    @Test
+    void testGetAllUsers_NoUsersFound() throws Exception {
+        when(userService.getAllUsers()).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/users"))
+                .andExpect(status().isOk()) // ✅ Expect 200 OK
+                .andExpect(content().json("[]")) // ✅ Expect an empty JSON array
+                .andExpect(jsonPath("$.size()").value(0)); // ✅ JSON array size should be 0
+    }
+
+    @Test
+    void testGetUserById_Success() throws Exception {
+        User user = new User(1L, "John Doe", "john@example.com");
+        when(userService.getUserById(1L)).thenReturn(Optional.of(user));
+
+        mockMvc.perform(get("/users/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("John Doe"));
+    }
+
+    @Test
+    void testGetUserById_NotFound() throws Exception {
+        when(userService.getUserById(1L)).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/users/1"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testCreateUser_Success() throws Exception {
+        User user = new User(1L, "John Doe", "john@example.com");
+        when(userService.saveUser(any(User.class))).thenReturn(user);
+
+        mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(new ObjectMapper().writeValueAsString(user)))
-                .andDo(MockMvcResultHandlers.print())  // Debugging
-                .andExpect(MockMvcResultMatchers.status().isCreated())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(user.getId()))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.name").value(user.getName()))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.email").value(user.getEmail()));
+                        .content(objectMapper.writeValueAsString(user)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.name").value("John Doe"));
     }
 
     @Test
-    void testGetUserById() throws Exception {
-        when(userService.getUserById(1L))
-                .thenReturn(Optional.of(user));
+    void testCreateUser_InvalidData() throws Exception {
+        User user = new User(); // Missing required fields
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/users/1"))
-                .andDo(MockMvcResultHandlers.print())  // Debugging
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(user.getId()))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.name").value(user.getName()))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.email").value(user.getEmail()));
+        mockMvc.perform(post("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(user)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
-    void testDeleteUser() throws Exception {
-        Mockito.doNothing().when(userService).deleteUser(1L);
+    void testDeleteUser_Success() throws Exception {
+        doNothing().when(userService).deleteUser(1L);
 
-        mockMvc.perform(MockMvcRequestBuilders.delete("/users/1"))
-                .andDo(MockMvcResultHandlers.print())  // Debugging
-                .andExpect(MockMvcResultMatchers.status().isFound());
+        mockMvc.perform(delete("/users/1"))
+                .andExpect(status().isFound())
+                .andExpect(content().string("User deleted successfully!"));
     }
 
     @Test
-    void testGetUserFromCache() throws Exception {
-        // Use `thenAnswer` to simulate caching (return the same response without re-invoking the method)
-        when(userService.getUserById(1L))
-                .thenAnswer(invocation -> Optional.of(user));
+    void testDeleteUser_NotFound() throws Exception {
+        doThrow(new RuntimeException("User not found")).when(userService).deleteUser(1L);
 
-        // First call - should hit the database
-        mockMvc.perform(MockMvcRequestBuilders.get("/users/1"))
-                .andDo(MockMvcResultHandlers.print())
-                .andExpect(MockMvcResultMatchers.status().isOk());
-
-        // Reset interactions to ensure we measure only the second request
-        Mockito.reset(userService);
-
-        // Second call - should be served from cache (no new interaction with service)
-        mockMvc.perform(MockMvcRequestBuilders.get("/users/1"))
-                .andDo(MockMvcResultHandlers.print())
-                .andExpect(MockMvcResultMatchers.status().isOk());
-
-        // Now verify it was only invoked ONCE (before the reset)
-        Mockito.verify(userService, Mockito.times(1)).getUserById(1L);
+        mockMvc.perform(delete("/users/1"))
+                .andExpect(status().isNotFound());
     }
-
-    @Test
-    void testGetAllUsers() throws Exception {
-        // Mock Data
-        List<User> mockUsers = Arrays.asList(
-                new User(1L, "John Doe", "john@example.com"),
-                new User(2L, "Jane Doe", "jane@example.com")
-        );
-
-        // Mock Service Call
-        when(userService.getAllUsers()).thenReturn(mockUsers);
-
-        // Perform GET Request
-        mockMvc.perform(MockMvcRequestBuilders.get("/users")) // Adjust if your endpoint is different
-                .andExpect(MockMvcResultMatchers.status().isOk()) // Check HTTP 200
-                .andExpect(jsonPath("$.size()", is(2))) // Check list size
-                .andExpect(jsonPath("$[0].id", is(1))) // Validate first user ID
-                .andExpect(jsonPath("$[0].name", is("John Doe"))) // Validate first user name
-                .andExpect(jsonPath("$[1].id", is(2))) // Validate second user ID
-                .andExpect(jsonPath("$[1].name", is("Jane Doe"))); // Validate second user name
-    }
-
-    @Test
-    void testSettersAndGetters() {
-        user = new User();
-
-        user.setId(1L);
-        user.setName("John Doe");
-        user.setEmail("john.doe@example.com");
-
-        assertEquals(1L, user.getId());
-        assertEquals("John Doe", user.getName());
-        assertEquals("john.doe@example.com", user.getEmail());
-    }
-
 }

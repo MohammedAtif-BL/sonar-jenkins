@@ -2,12 +2,11 @@ package com.example.spring_redis.controller;
 
 import com.example.spring_redis.entity.User;
 import com.example.spring_redis.service.UserService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/users")
@@ -20,24 +19,35 @@ public class UserController {
     }
 
     @GetMapping
-    public List<User> getAllUsers() {
-        return userService.getAllUsers();
+    public ResponseEntity<List<User>> getAllUsers() {
+        List<User> users = userService.getAllUsers();
+        return users.isEmpty() ? ResponseEntity.ok(Collections.emptyList()) : ResponseEntity.ok(users);
     }
 
+
     @GetMapping("/{id}")
-    public Optional<User> getUserById(@PathVariable Long id) {
-        return userService.getUserById(id);
+    public ResponseEntity<User> getUserById(@PathVariable Long id) {
+        return userService.getUserById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build()); // Returns 404 if user not found
     }
 
     @PostMapping
     public ResponseEntity<User> createUser(@RequestBody User user) {
-        return new ResponseEntity<>(userService.saveUser(user), HttpStatus.CREATED);
+        if (user.getName() == null || user.getEmail() == null) {
+            return ResponseEntity.badRequest().build(); // Returns 400 Bad Request if data is invalid
+        }
+        return ResponseEntity.status(201).body(userService.saveUser(user)); // Returns 201 Created
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteUser(@PathVariable Long id) {
-        userService.deleteUser(id);
-        return new ResponseEntity<>("User deleted successfully!", HttpStatus.FOUND);
+        try {
+            userService.deleteUser(id);
+            return ResponseEntity.status(302).body("User deleted successfully!"); // Returns 302 Found
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build(); // Returns 404 if user not found
+        }
     }
 }
 
