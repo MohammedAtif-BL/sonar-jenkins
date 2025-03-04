@@ -42,8 +42,10 @@ class UserControllerTest {
 
     @Test
     void testGetAllUsers_Success() throws Exception {
-        List<User> users = Arrays.asList(new User(1L, "John Doe", "john@example.com"),
-                new User(2L, "Jane Doe", "jane@example.com"));
+        List<User> users = Arrays.asList(
+                new User(1L, "John Doe", "john@example.com"),
+                new User(2L, "Jane Doe", "jane@example.com")
+        );
         when(userService.getAllUsers()).thenReturn(users);
 
         mockMvc.perform(get("/users"))
@@ -58,9 +60,9 @@ class UserControllerTest {
         when(userService.getAllUsers()).thenReturn(Collections.emptyList());
 
         mockMvc.perform(get("/users"))
-                .andExpect(status().isOk()) // ✅ Expect 200 OK
-                .andExpect(content().json("[]")) // ✅ Expect an empty JSON array
-                .andExpect(jsonPath("$.size()").value(0)); // ✅ JSON array size should be 0
+                .andExpect(status().isOk())
+                .andExpect(content().json("[]"))
+                .andExpect(jsonPath("$.size()").value(0));
     }
 
     @Test
@@ -95,7 +97,7 @@ class UserControllerTest {
 
     @Test
     void testCreateUser_InvalidData() throws Exception {
-        User user = new User(); // Missing required fields
+        User user = new User();
 
         mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
